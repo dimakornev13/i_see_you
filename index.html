@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+
+	<style>
+		.wrap{
+			width: 100px;
+			height: 100px;
+
+			position: absolute;
+
+			top:45%;
+			bottom: 0;
+			left: 30%;
+			right: 0;
+
+			overflow: hidden;
+			background: #dee1e1;
+
+			border-radius: 50%;
+			box-sizing: border-box;
+		}
+
+		.eye{
+			height: 25px;
+			width: 25px;
+			position: absolute;
+
+
+			background: #4394c0;
+			top:0;
+			bottom: 0;
+			left: 0;
+			right: 0;
+
+			margin: auto;
+
+			border-radius: 50%;
+			box-sizing: border-box;
+
+			z-index: 10;
+		}
+
+		.eye:before, .eye:after{
+			content: '';
+			position: absolute;
+			top:20%;
+			left:20%;
+			right:0;
+			bottom:0;
+			height: 60%;
+			width: 60%;
+
+			background: #000;
+
+			z-index: 1;
+			border-radius: 50%;
+			box-sizing: border-box;
+
+			display: block;
+		}
+
+		.eye:after {
+			top: 18%;
+			left: 55%;
+			height: 20%;
+			width: 20%;
+			background: #fff;
+			z-index: 11;
+		}
+	</style>
+
+</head>
+<body>
+
+<!-- 	<div class="wrap">
+		<div class="eye"></div>
+	</div> -->
+
+
+	<script>document.write('<script src="http://' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1"></' + 'script>')</script>
+	<script type="text/javascript" src="jquery-3.3.1.min.js"></script>
+
+	<script>
+/*
+	долго думал как реализовать проверку на коллизию (перекрывание одни глазом другого)
+	в итоге решил (сам!) использовать расстояние между исходными точками (левый верх) сравниваемых блоков,
+	если расстояние меньше, чем длини одного из блоков, то коллизия присутствуе
+т*/
+		function getRandomInt(min, max) {
+			return Math.floor(Math.random() * (max - min)) + min;
+		}		
+
+		function Eyes(count){
+			this.list = [];
+			this.exceptions = [];
+			this.minSize = 25;
+			this.maxSize = 100;
+
+			this.mouseMove = function(e){
+				var count = this.list.length;
+
+				for(var i=0; i<count; i++){
+					var wrap = $(this.list[i]),
+					inn = $(this.list[i]).find('.eye'),
+					r = wrap.width() - inn.width() + inn.width()/5,
+
+					x1 = wrap.offset().left + wrap.width() / 2,
+					y1 = wrap.offset().top + wrap.width() / 2,
+
+					x2 = e.clientX,
+					y2 = e.clientY,
+					tmpx = x2 - x1, // help var
+					tmpy = y2 - y1, // help var
+					sqrt = Math.sqrt(tmpx*tmpx+tmpy*tmpy),
+
+					y = (r*tmpy/sqrt),
+					x = (r*tmpx/sqrt),
+					scalex = Math.abs(y/x),
+					scaley = Math.abs(x/y),
+					
+					scalex = scalex > 1 ? 1 : scalex,
+					scaley = scaley > 1 ? 1 : scaley,
+
+					scalex = scalex < 0.9 ? 0.9 : scalex,
+					scaley = scaley < 0.9 ? 0.9 : scaley;
+
+
+					inn.css({top: y, left: x, 'transform': 'scale('+scalex+','+scaley+')'});					
+				}
+			};
+
+			this.random_rgb = function() {
+				var o = Math.round, r = Math.random, s = 255;
+				return 'rgb(' + o(r()*s) + ',' + o(r()*s) + ',' + o(r()*s) + ')';
+			}
+
+
+			// check colision
+			this.findColision = function(size, offset){
+				var count = this.list.length,
+				dist, tmp, a,b;
+
+				for(var i=0; i<count; i++){
+					tmp = this.exceptions[i],
+					a = tmp.x - offset.left,
+					b = tmp.y - offset.top,
+					dist = Math.sqrt(a*a+b*b);
+
+					if(dist < tmp.size || dist < size)
+						return false;
+				}
+
+				return true;
+			}
+
+			for(var i=0;i<count;i++){
+				var wrap = $(document.createElement('div')).addClass('wrap').prependTo('body'),
+				issetColision = false,
+				size, offset = {};
+
+				while(!issetColision){
+					size = getRandomInt(this.minSize, this.maxSize);
+					offset = {
+						top: getRandomInt(0, $(document).height() - size),
+						left: getRandomInt(0, $(document).width() - size)
+					}
+
+					// check colision
+					issetColision = this.findColision(size, offset);
+				}
+
+				wrap.css({width: size, height: size, top: offset.top, left: offset.left});
+				this.exceptions.push({y: offset.top, x: offset.left, size: size});
+
+				var inner = $(document.createElement('div')).addClass('eye').appendTo(wrap),
+					size = size / 2;
+
+				inner.css({width: size, height: size, background: this.random_rgb});
+
+				this.list.push(wrap);
+			}
+
+			$(document).on('mousemove', this.mouseMove.bind(this));
+		}
+
+		var test = new Eyes(30);
+
+/* подводные камни:
+ - условие для колизии срабатывает всегда, даже если колиизии нет, потому что расстояние между исходными точками
+ 	будет меньше стороны бОльшего квадрата, но в это же время маленький квадрат находится очень рядом, но не пересекает 
+ - 
+*/	
+
+	</script>
+</body>
+</html>
